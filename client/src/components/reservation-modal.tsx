@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { insertReservationSchema, type InsertReservation } from "@shared/schema";
 import type { TableWithReservations } from "@shared/schema";
 import { z } from "zod";
+import { Clock } from "lucide-react";
 
 const reservationFormSchema = insertReservationSchema.extend({
   date: z.string().min(1, "Дата обязательна"),

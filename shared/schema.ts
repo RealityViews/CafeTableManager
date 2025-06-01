@@ -5,6 +5,7 @@ import { z } from "zod";
 export const tables = pgTable("tables", {
   id: serial("id").primaryKey(),
   number: integer("number").notNull().unique(),
+  name: text("name"),
   capacity: integer("capacity").notNull(),
   x: integer("x").notNull(),
   y: integer("y").notNull(),
@@ -26,6 +27,9 @@ export const reservations = pgTable("reservations", {
   duration: integer("duration").notNull().default(120), // minutes
   comment: text("comment"),
   status: text("status", { enum: ["active", "completed", "cancelled"] }).notNull().default("active"),
+  hasTimeLimit: boolean("has_time_limit").notNull().default(false),
+  startTime: text("start_time"),
+  endTime: text("end_time"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
