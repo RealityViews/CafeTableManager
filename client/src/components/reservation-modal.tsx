@@ -32,6 +32,7 @@ export function ReservationModal({ open, onClose, selectedTable }: ReservationMo
   const { data: tables } = useTables();
   const createReservation = useCreateReservation();
   const { toast } = useToast();
+  const [hasTimeLimit, setHasTimeLimit] = useState(false);
 
   const availableTables = tables?.filter(table => table.status === "available") || [];
 
@@ -47,17 +48,28 @@ export function ReservationModal({ open, onClose, selectedTable }: ReservationMo
       duration: 120,
       comment: "",
       status: "active",
+      hasTimeLimit: false,
+      startTime: "",
+      endTime: "",
     },
   });
 
   const onSubmit = async (data: InsertReservation) => {
     try {
-      await createReservation.mutateAsync(data);
+      const reservationData = {
+        ...data,
+        hasTimeLimit,
+        startTime: hasTimeLimit ? data.startTime : null,
+        endTime: hasTimeLimit ? data.endTime : null,
+      };
+      
+      await createReservation.mutateAsync(reservationData);
       toast({
         title: "Бронь создана",
         description: `Стол №${tables?.find(t => t.id === data.tableId)?.number} успешно забронирован`,
       });
       form.reset();
+      setHasTimeLimit(false);
       onClose();
     } catch (error) {
       toast({
@@ -187,6 +199,72 @@ export function ReservationModal({ open, onClose, selectedTable }: ReservationMo
               />
             </div>
             
+            {/* Time Limit Options */}
+            <div className="space-y-4">
+              <FormLabel>Ограничение времени</FormLabel>
+              <div className="flex space-x-4">
+                <Button
+                  type="button"
+                  variant={!hasTimeLimit ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setHasTimeLimit(false)}
+                >
+                  Без ограничения
+                </Button>
+                <Button
+                  type="button"
+                  variant={hasTimeLimit ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setHasTimeLimit(true)}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Ограничение
+                </Button>
+              </div>
+
+              {hasTimeLimit && (
+                <Card className="p-4 bg-amber-50 border-amber-200">
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-amber-800 mb-2">
+                      Время пребывания
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="startTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">С</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">До</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="text-xs text-amber-700">
+                      Гости должны освободить стол в указанное время
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+
             <FormField
               control={form.control}
               name="comment"
@@ -196,7 +274,8 @@ export function ReservationModal({ open, onClose, selectedTable }: ReservationMo
                   <FormControl>
                     <Textarea 
                       placeholder="Особые пожелания или примечания" 
-                      {...field} 
+                      {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />

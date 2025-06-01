@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TableItem } from "./table-item";
+import { DraggableTable } from "./draggable-table";
 import { TableEditor } from "./table-editor";
 import { useTables, useUpdateTable } from "@/hooks/use-tables";
 import { useToast } from "@/hooks/use-toast";
@@ -21,22 +21,14 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
   const { toast } = useToast();
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingTable, setEditingTable] = useState<TableWithReservations | null>(null);
-  const [draggedTable, setDraggedTable] = useState<TableWithReservations | null>(null);
+
   const floorPlanRef = useRef<HTMLDivElement>(null);
 
   const handleTableMove = useCallback(
     (table: TableWithReservations, x: number, y: number) => {
-      if (!isEditMode) return;
-
       updateTable.mutate(
         { id: table.id, updates: { x, y } },
         {
-          onSuccess: () => {
-            toast({
-              title: "Стол перемещен",
-              description: `Стол №${table.number} успешно перемещен`,
-            });
-          },
           onError: () => {
             toast({
               title: "Ошибка",
@@ -47,7 +39,25 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
         }
       );
     },
-    [isEditMode, updateTable, toast]
+    [updateTable, toast]
+  );
+
+  const handleTableResize = useCallback(
+    (table: TableWithReservations, width: number, height: number) => {
+      updateTable.mutate(
+        { id: table.id, updates: { width, height } },
+        {
+          onError: () => {
+            toast({
+              title: "Ошибка",
+              description: "Не удалось изменить размер стола",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+    },
+    [updateTable, toast]
   );
 
   const handleMouseDown = (e: React.MouseEvent, table: TableWithReservations) => {
@@ -177,18 +187,16 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
 
           {/* Tables */}
           {tables?.map((table) => (
-            <div
+            <DraggableTable
               key={table.id}
-              data-table-id={table.id}
-              onMouseDown={isEditMode ? (e) => handleMouseDown(e, table) : undefined}
-            >
-              <TableItem
-                table={table}
-                isSelected={selectedTable?.id === table.id}
-                onSelect={handleTableClick}
-                onDoubleClick={handleTableDoubleClick}
-              />
-            </div>
+              table={table}
+              isSelected={selectedTable?.id === table.id}
+              isEditMode={isEditMode}
+              onSelect={handleTableClick}
+              onDoubleClick={handleTableDoubleClick}
+              onMove={handleTableMove}
+              onResize={handleTableResize}
+            />
           ))}
 
           {/* Table Editor */}
