@@ -54,19 +54,22 @@ export function DraggableTable({
   };
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!isEditMode) {
       onSelect(table);
       return;
     }
-
-    e.preventDefault();
-    e.stopPropagation();
     
     const rect = tableRef.current?.getBoundingClientRect();
     if (!rect) return;
 
     const target = e.target as HTMLElement;
     const isResizeHandle = target.classList.contains('resize-handle');
+    
+    // Capture the pointer to ensure we receive all events
+    (e.target as Element).setPointerCapture(e.pointerId);
     
     if (isResizeHandle) {
       setIsResizing(true);
@@ -134,13 +137,13 @@ export function DraggableTable({
   }, [handlePointerMove]);
 
   const handleClick = () => {
-    if (!isEditMode) {
+    if (!isDragging && !isResizing) {
       onSelect(table);
     }
   };
 
   const handleDoubleClick = () => {
-    if (!isEditMode && onDoubleClick) {
+    if (!isEditMode && onDoubleClick && !isDragging && !isResizing) {
       onDoubleClick(table);
     }
   };
@@ -149,7 +152,7 @@ export function DraggableTable({
     <div
       ref={tableRef}
       className={cn(
-        "absolute select-none touch-none",
+        "absolute select-none",
         isEditMode ? "cursor-move" : "cursor-pointer",
         isDragging && "z-50",
         isSelected && "ring-2 ring-blue-500 ring-offset-2"
@@ -159,6 +162,7 @@ export function DraggableTable({
         top: `${table.y}px`,
         width: `${table.width}px`,
         height: `${table.height}px`,
+        touchAction: isEditMode ? 'none' : 'auto'
       }}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
@@ -185,22 +189,28 @@ export function DraggableTable({
           <>
             {/* Southeast corner handle */}
             <div
-              className="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-10"
+              className="resize-handle absolute -bottom-2 -right-2 w-6 h-6 bg-blue-500 border-2 border-white rounded-full cursor-se-resize z-20 touch-none flex items-center justify-center"
               data-handle="se"
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+              style={{ touchAction: 'none' }}
+            >
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
             {/* East handle */}
             <div
-              className="resize-handle absolute top-1/2 -right-1 w-3 h-6 bg-blue-500 border border-white rounded-sm cursor-e-resize transform -translate-y-1/2 z-10"
+              className="resize-handle absolute top-1/2 -right-2 w-6 h-8 bg-blue-500 border-2 border-white rounded-full cursor-e-resize transform -translate-y-1/2 z-20 touch-none flex items-center justify-center"
               data-handle="e"
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+              style={{ touchAction: 'none' }}
+            >
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
             {/* South handle */}
             <div
-              className="resize-handle absolute -bottom-1 left-1/2 w-6 h-3 bg-blue-500 border border-white rounded-sm cursor-s-resize transform -translate-x-1/2 z-10"
+              className="resize-handle absolute -bottom-2 left-1/2 w-8 h-6 bg-blue-500 border-2 border-white rounded-full cursor-s-resize transform -translate-x-1/2 z-20 touch-none flex items-center justify-center"
               data-handle="s"
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+              style={{ touchAction: 'none' }}
+            >
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
           </>
         )}
       </div>

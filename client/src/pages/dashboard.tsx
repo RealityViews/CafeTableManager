@@ -168,6 +168,7 @@ export default function Dashboard() {
           <FloorPlan
             onTableSelect={handleTableSelect}
             onTableDetails={handleTableDetails}
+            onReserveTable={handleReserveTable}
             selectedTable={selectedTable}
             selectedHallId={selectedHallId}
           />

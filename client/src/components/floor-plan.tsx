@@ -11,11 +11,12 @@ import { Edit, Settings } from "lucide-react";
 interface FloorPlanProps {
   onTableSelect: (table: TableWithReservations) => void;
   onTableDetails: (table: TableWithReservations) => void;
+  onReserveTable: (table: TableWithReservations) => void;
   selectedTable: TableWithReservations | null;
   selectedHallId: string;
 }
 
-export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, selectedHallId }: FloorPlanProps) {
+export function FloorPlan({ onTableSelect, onTableDetails, onReserveTable, selectedTable, selectedHallId }: FloorPlanProps) {
   const { data: tables, isLoading } = useTables(undefined, selectedHallId);
   const updateTable = useUpdateTable();
   const { toast } = useToast();
@@ -63,7 +64,11 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
 
 
   const handleTableClick = (table: TableWithReservations) => {
-    onTableSelect(table);
+    if (table.status === "available") {
+      onReserveTable(table);
+    } else {
+      onTableSelect(table);
+    }
   };
 
   const handleTableDoubleClick = (table: TableWithReservations) => {
