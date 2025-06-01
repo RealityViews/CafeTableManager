@@ -98,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reservations", async (req, res) => {
     try {
       const date = req.query.date as string;
+      const search = req.query.search as string;
       let reservations;
       
       if (date) {
@@ -106,9 +107,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reservations = await storage.getReservations();
       }
       
+      // Filter by search query if provided
+      if (search && search.trim() !== "") {
+        const searchLower = search.toLowerCase().trim();
+        reservations = reservations.filter(reservation => 
+          reservation.customerName.toLowerCase().includes(searchLower) ||
+          reservation.customerPhone.includes(search.trim())
+        );
+      }
+      
       res.json(reservations);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch reservations" });
+    }
+  });
+
+  // Search reservations endpoint
+  app.get("/api/reservations/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      if (!query || query.trim() === "") {
+        return res.json([]);
+      }
+      
+      const allReservations = await storage.getReservations();
+      const allTables = await storage.getTables();
+      
+      const searchLower = query.toLowerCase().trim();
+      const matchingReservations = allReservations.filter(reservation => 
+        reservation.customerName.toLowerCase().includes(searchLower) ||
+        reservation.customerPhone.includes(query.trim())
+      );
+      
+      // Attach table information to reservations
+      const reservationsWithTables = matchingReservations.map(reservation => {
+        const table = allTables.find(t => t.id === reservation.tableId);
+        return {
+          ...reservation,
+          table
+        };
+      });
+      
+      res.json(reservationsWithTables);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to search reservations" });
     }
   });
 

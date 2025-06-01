@@ -3,12 +3,15 @@ import { StatsCards } from "@/components/stats-cards";
 import { FloorPlan } from "@/components/floor-plan";
 import { Sidebar } from "@/components/sidebar";
 import { HallSelector } from "@/components/hall-selector";
+import { ReservationSearch } from "@/components/reservation-search";
 import { ReservationModal } from "@/components/reservation-modal";
 import { TableDetailModal } from "@/components/table-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TableWithReservations } from "@shared/schema";
+import type { ReservationWithTable } from "@/hooks/use-search";
 import { Utensils, Search, Plus, Calendar, Bell, User } from "lucide-react";
 
 export default function Dashboard() {
@@ -35,6 +38,21 @@ export default function Dashboard() {
   const handleReserveTable = (table: TableWithReservations) => {
     setSelectedTable(table);
     setReservationModalOpen(true);
+  };
+
+  const handleReservationSelect = (reservation: ReservationWithTable) => {
+    if (reservation.table) {
+      // Switch to the hall where the table is located
+      setSelectedHallId(reservation.table.hallId);
+      
+      // Set the table as selected (this will highlight it on the floor plan)
+      const tableWithReservations: TableWithReservations = {
+        ...reservation.table,
+        currentReservation: reservation,
+        todayReservations: [reservation]
+      };
+      setSelectedTable(tableWithReservations);
+    }
   };
 
   return (
@@ -87,41 +105,45 @@ export default function Dashboard() {
 
         {/* Controls Bar */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Поиск брони или гостя..."
-                  className="pl-10 w-64"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+          <Tabs defaultValue="tables" className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="tables">Управление столами</TabsTrigger>
+                <TabsTrigger value="search">Поиск броней</TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center space-x-3">
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Календарь
+                </Button>
+                <Button onClick={handleNewReservation}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Новая бронь
+                </Button>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Фильтр по статусу" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все столы</SelectItem>
-                  <SelectItem value="available">Только свободные</SelectItem>
-                  <SelectItem value="reserved">Только забронированные</SelectItem>
-                  <SelectItem value="occupied">Только занятые</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline">
-                <Calendar className="h-4 w-4 mr-2" />
-                Календарь
-              </Button>
-              <Button onClick={handleNewReservation}>
-                <Plus className="h-4 w-4 mr-2" />
-                Новая бронь
-              </Button>
-            </div>
-          </div>
+            
+            <TabsContent value="tables" className="mt-0">
+              <div className="flex items-center space-x-4">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Фильтр по статусу" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все столы</SelectItem>
+                    <SelectItem value="available">Только свободные</SelectItem>
+                    <SelectItem value="reserved">Только забронированные</SelectItem>
+                    <SelectItem value="occupied">Только занятые</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="search" className="mt-0">
+              <ReservationSearch onReservationSelect={handleReservationSelect} />
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
