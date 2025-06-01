@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StatsCards } from "@/components/stats-cards";
 import { FloorPlan } from "@/components/floor-plan";
 import { Sidebar } from "@/components/sidebar";
+import { HallSelector } from "@/components/hall-selector";
 import { ReservationModal } from "@/components/reservation-modal";
 import { TableDetailModal } from "@/components/table-detail-modal";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Utensils, Search, Plus, Calendar, Bell, User } from "lucide-react";
 
 export default function Dashboard() {
   const [selectedTable, setSelectedTable] = useState<TableWithReservations | null>(null);
+  const [selectedHallId, setSelectedHallId] = useState("white");
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [tableDetailModalOpen, setTableDetailModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,17 +124,30 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-1">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Залы</h3>
+                <HallSelector
+                  selectedHallId={selectedHallId}
+                  onHallSelect={setSelectedHallId}
+                />
+              </div>
+              
+              <Sidebar
+                selectedTable={selectedTable}
+                onNewReservation={handleNewReservation}
+                onReserveTable={handleReserveTable}
+              />
+            </div>
+          </div>
+          
           <FloorPlan
             onTableSelect={handleTableSelect}
             onTableDetails={handleTableDetails}
             selectedTable={selectedTable}
-          />
-          
-          <Sidebar
-            selectedTable={selectedTable}
-            onNewReservation={handleNewReservation}
-            onReserveTable={handleReserveTable}
+            selectedHallId={selectedHallId}
           />
         </div>
       </div>

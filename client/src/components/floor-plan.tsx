@@ -2,22 +2,25 @@ import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TableItem } from "./table-item";
+import { TableEditor } from "./table-editor";
 import { useTables, useUpdateTable } from "@/hooks/use-tables";
 import { useToast } from "@/hooks/use-toast";
 import type { TableWithReservations } from "@shared/schema";
-import { Edit } from "lucide-react";
+import { Edit, Settings } from "lucide-react";
 
 interface FloorPlanProps {
   onTableSelect: (table: TableWithReservations) => void;
   onTableDetails: (table: TableWithReservations) => void;
   selectedTable: TableWithReservations | null;
+  selectedHallId: string;
 }
 
-export function FloorPlan({ onTableSelect, onTableDetails, selectedTable }: FloorPlanProps) {
-  const { data: tables, isLoading } = useTables();
+export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, selectedHallId }: FloorPlanProps) {
+  const { data: tables, isLoading } = useTables(undefined, selectedHallId);
   const updateTable = useUpdateTable();
   const { toast } = useToast();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [editingTable, setEditingTable] = useState<TableWithReservations | null>(null);
   const [draggedTable, setDraggedTable] = useState<TableWithReservations | null>(null);
   const floorPlanRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +90,10 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable }: Floo
   };
 
   const handleTableClick = (table: TableWithReservations) => {
-    if (isEditMode) return;
+    if (isEditMode) {
+      setEditingTable(table);
+      return;
+    }
     onTableSelect(table);
   };
 
@@ -132,7 +138,10 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable }: Floo
             <Button
               variant={isEditMode ? "default" : "outline"}
               size="sm"
-              onClick={() => setIsEditMode(!isEditMode)}
+              onClick={() => {
+                setIsEditMode(!isEditMode);
+                setEditingTable(null);
+              }}
             >
               <Edit className="h-4 w-4 mr-1" />
               {isEditMode ? "Готово" : "Редактировать"}
@@ -181,6 +190,14 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable }: Floo
               />
             </div>
           ))}
+
+          {/* Table Editor */}
+          {editingTable && (
+            <TableEditor
+              table={editingTable}
+              onClose={() => setEditingTable(null)}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
