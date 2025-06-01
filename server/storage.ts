@@ -54,7 +54,12 @@ export class MemStorage implements IStorage {
     ];
 
     defaultTables.forEach(table => {
-      const newTable: Table = { ...table, id: this.currentTableId++ };
+      const newTable: Table = { 
+        ...table, 
+        id: this.currentTableId++,
+        status: table.status || "available",
+        shape: table.shape || "round"
+      };
       this.tables.set(newTable.id, newTable);
     });
 
@@ -100,6 +105,9 @@ export class MemStorage implements IStorage {
       const newReservation: Reservation = { 
         ...reservation, 
         id: this.currentReservationId++,
+        status: reservation.status || "active",
+        duration: reservation.duration || 120,
+        comment: reservation.comment || null,
         createdAt: new Date()
       };
       this.reservations.set(newReservation.id, newReservation);
@@ -116,7 +124,12 @@ export class MemStorage implements IStorage {
 
   async createTable(table: InsertTable): Promise<Table> {
     const id = this.currentTableId++;
-    const newTable: Table = { ...table, id };
+    const newTable: Table = { 
+      ...table, 
+      id,
+      status: table.status || "available",
+      shape: table.shape || "round"
+    };
     this.tables.set(id, newTable);
     return newTable;
   }
@@ -157,8 +170,16 @@ export class MemStorage implements IStorage {
   async createReservation(reservation: InsertReservation): Promise<Reservation> {
     const id = this.currentReservationId++;
     const newReservation: Reservation = { 
-      ...reservation, 
       id,
+      tableId: reservation.tableId,
+      customerName: reservation.customerName,
+      customerPhone: reservation.customerPhone,
+      guests: reservation.guests,
+      date: reservation.date,
+      time: reservation.time,
+      duration: reservation.duration || 120,
+      comment: reservation.comment || null,
+      status: reservation.status || "active",
       createdAt: new Date()
     };
     this.reservations.set(id, newReservation);

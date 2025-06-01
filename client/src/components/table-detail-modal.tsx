@@ -2,7 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useDeleteReservation, useUpdateTableStatus } from "@/hooks/use-reservations";
+import { useDeleteReservation } from "@/hooks/use-reservations";
+import { useUpdateTableStatus } from "@/hooks/use-tables";
 import { useToast } from "@/hooks/use-toast";
 import type { TableWithReservations } from "@shared/schema";
 import { Phone, Users, Clock, MessageSquare } from "lucide-react";
