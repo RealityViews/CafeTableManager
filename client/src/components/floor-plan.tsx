@@ -104,7 +104,7 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
 
   if (isLoading) {
     return (
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-3">
         <CardHeader>
           <CardTitle>План зала</CardTitle>
         </CardHeader>
@@ -118,7 +118,7 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
   }
 
   return (
-    <Card className="lg:col-span-2">
+    <Card className="lg:col-span-3">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>План зала</CardTitle>
