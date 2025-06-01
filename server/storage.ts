@@ -39,18 +39,30 @@ export class MemStorage implements IStorage {
 
   private initializeDefaultTables() {
     const defaultTables: InsertTable[] = [
-      { number: 1, capacity: 2, x: 50, y: 80, width: 60, height: 60, status: "available", shape: "round" },
-      { number: 2, capacity: 2, x: 150, y: 80, width: 60, height: 60, status: "reserved", shape: "round" },
-      { number: 3, capacity: 4, x: 250, y: 80, width: 80, height: 60, status: "occupied", shape: "rectangular" },
-      { number: 4, capacity: 6, x: 50, y: 200, width: 100, height: 60, status: "available", shape: "rectangular" },
-      { number: 5, capacity: 2, x: 200, y: 200, width: 60, height: 60, status: "reserved", shape: "round" },
-      { number: 6, capacity: 4, x: 300, y: 200, width: 80, height: 60, status: "available", shape: "rectangular" },
-      { number: 7, capacity: 4, x: 400, y: 200, width: 80, height: 60, status: "reserved", shape: "rectangular" },
-      { number: 8, capacity: 6, x: 500, y: 150, width: 100, height: 60, status: "available", shape: "rectangular" },
-      { number: 9, capacity: 6, x: 500, y: 250, width: 100, height: 60, status: "occupied", shape: "rectangular" },
-      { number: 10, capacity: 2, x: 80, y: 350, width: 60, height: 60, status: "available", shape: "round" },
-      { number: 11, capacity: 4, x: 180, y: 350, width: 80, height: 60, status: "reserved", shape: "rectangular" },
-      { number: 12, capacity: 8, x: 450, y: 350, width: 120, height: 80, status: "reserved", shape: "rectangular" },
+      // Белый зал
+      { number: 1, capacity: 2, x: 50, y: 80, width: 60, height: 60, status: "available", shape: "round", hallId: "white" },
+      { number: 2, capacity: 2, x: 150, y: 80, width: 60, height: 60, status: "reserved", shape: "round", hallId: "white" },
+      { number: 3, capacity: 4, x: 250, y: 80, width: 80, height: 60, status: "occupied", shape: "rectangular", hallId: "white" },
+      { number: 4, capacity: 6, x: 50, y: 200, width: 100, height: 60, status: "available", shape: "rectangular", hallId: "white" },
+      
+      // Бар зал
+      { number: 5, capacity: 2, x: 50, y: 80, width: 60, height: 60, status: "reserved", shape: "round", hallId: "bar" },
+      { number: 6, capacity: 4, x: 150, y: 80, width: 80, height: 60, status: "available", shape: "rectangular", hallId: "bar" },
+      { number: 7, capacity: 2, x: 250, y: 80, width: 60, height: 60, status: "occupied", shape: "round", hallId: "bar" },
+      
+      // Сводчатый зал
+      { number: 8, capacity: 6, x: 100, y: 120, width: 100, height: 60, status: "available", shape: "rectangular", hallId: "vaulted" },
+      { number: 9, capacity: 8, x: 250, y: 120, width: 120, height: 80, status: "reserved", shape: "rectangular", hallId: "vaulted" },
+      { number: 10, capacity: 4, x: 50, y: 250, width: 80, height: 60, status: "available", shape: "rectangular", hallId: "vaulted" },
+      
+      // Четвертый зал
+      { number: 11, capacity: 2, x: 80, y: 100, width: 60, height: 60, status: "available", shape: "round", hallId: "fourth" },
+      { number: 12, capacity: 4, x: 180, y: 100, width: 80, height: 60, status: "reserved", shape: "rectangular", hallId: "fourth" },
+      
+      // Банкетный зал
+      { number: 13, capacity: 10, x: 100, y: 150, width: 140, height: 100, status: "reserved", shape: "rectangular", hallId: "banquet" },
+      { number: 14, capacity: 12, x: 300, y: 150, width: 160, height: 100, status: "available", shape: "rectangular", hallId: "banquet" },
+      { number: 15, capacity: 8, x: 50, y: 300, width: 120, height: 80, status: "occupied", shape: "rectangular", hallId: "banquet" },
     ];
 
     defaultTables.forEach(table => {
@@ -58,7 +70,8 @@ export class MemStorage implements IStorage {
         ...table, 
         id: this.currentTableId++,
         status: table.status || "available",
-        shape: table.shape || "round"
+        shape: table.shape || "round",
+        hallId: table.hallId || "white"
       };
       this.tables.set(newTable.id, newTable);
     });
@@ -125,10 +138,16 @@ export class MemStorage implements IStorage {
   async createTable(table: InsertTable): Promise<Table> {
     const id = this.currentTableId++;
     const newTable: Table = { 
-      ...table, 
       id,
+      number: table.number,
+      capacity: table.capacity,
+      x: table.x,
+      y: table.y,
+      width: table.width,
+      height: table.height,
       status: table.status || "available",
-      shape: table.shape || "round"
+      shape: table.shape || "round",
+      hallId: table.hallId || "white"
     };
     this.tables.set(id, newTable);
     return newTable;

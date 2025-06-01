@@ -8,10 +8,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tables", async (req, res) => {
     try {
       const date = req.query.date as string;
+      const hallId = req.query.hallId as string;
       const tables = await storage.getTablesWithReservations(date);
-      res.json(tables);
+      
+      // Filter by hall if specified
+      const filteredTables = hallId 
+        ? tables.filter(table => table.hallId === hallId)
+        : tables;
+      
+      res.json(filteredTables);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch tables" });
+    }
+  });
+
+  // Get halls list
+  app.get("/api/halls", async (req, res) => {
+    try {
+      const halls = [
+        { id: "white", name: "Белый зал", description: "Элегантный основной зал" },
+        { id: "bar", name: "Бар зал", description: "Уютная барная зона" },
+        { id: "vaulted", name: "Сводчатый зал", description: "Зал с арочными потолками" },
+        { id: "fourth", name: "Четвертый зал", description: "Дополнительный зал" },
+        { id: "banquet", name: "Банкетный зал", description: "Зал для больших мероприятий" }
+      ];
+      res.json(halls);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch halls" });
     }
   });
 

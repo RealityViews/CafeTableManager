@@ -12,6 +12,7 @@ export const tables = pgTable("tables", {
   height: integer("height").notNull(),
   status: text("status", { enum: ["available", "reserved", "occupied"] }).notNull().default("available"),
   shape: text("shape", { enum: ["round", "square", "rectangular"] }).notNull().default("round"),
+  hallId: text("hall_id", { enum: ["white", "bar", "vaulted", "fourth", "banquet"] }).notNull().default("white"),
 });
 
 export const reservations = pgTable("reservations", {

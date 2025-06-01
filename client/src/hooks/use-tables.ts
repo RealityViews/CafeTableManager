@@ -2,11 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Table, TableWithReservations, InsertTable } from "@shared/schema";
 
-export function useTables(date?: string) {
+export function useTables(date?: string, hallId?: string) {
   return useQuery<TableWithReservations[]>({
-    queryKey: ["/api/tables", date],
+    queryKey: ["/api/tables", date, hallId],
     queryFn: async () => {
-      const url = date ? `/api/tables?date=${date}` : "/api/tables";
+      const params = new URLSearchParams();
+      if (date) params.append("date", date);
+      if (hallId) params.append("hallId", hallId);
+      
+      const url = params.toString() ? `/api/tables?${params.toString()}` : "/api/tables";
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) {
         throw new Error("Failed to fetch tables");
