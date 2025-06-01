@@ -60,55 +60,17 @@ export function FloorPlan({ onTableSelect, onTableDetails, selectedTable, select
     [updateTable, toast]
   );
 
-  const handleMouseDown = (e: React.MouseEvent, table: TableWithReservations) => {
-    if (!isEditMode) return;
-    
-    e.preventDefault();
-    setDraggedTable(table);
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!floorPlanRef.current || !draggedTable) return;
-      
-      const rect = floorPlanRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      // Update position temporarily for visual feedback
-      const tableElement = document.querySelector(`[data-table-id="${draggedTable.id}"]`) as HTMLElement;
-      if (tableElement) {
-        tableElement.style.left = `${x}px`;
-        tableElement.style.top = `${y}px`;
-      }
-    };
-    
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!floorPlanRef.current || !draggedTable) return;
-      
-      const rect = floorPlanRef.current.getBoundingClientRect();
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width - 100));
-      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height - 100));
-      
-      handleTableMove(draggedTable, x, y);
-      setDraggedTable(null);
-      
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-    
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
+
 
   const handleTableClick = (table: TableWithReservations) => {
-    if (isEditMode) {
-      setEditingTable(table);
-      return;
-    }
     onTableSelect(table);
   };
 
   const handleTableDoubleClick = (table: TableWithReservations) => {
-    if (isEditMode) return;
+    if (isEditMode) {
+      setEditingTable(table);
+      return;
+    }
     onTableDetails(table);
   };
 
