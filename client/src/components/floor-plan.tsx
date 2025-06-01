@@ -1,0 +1,188 @@
+import { useState, useRef, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { TableItem } from "./table-item";
+import { useTables, useUpdateTable } from "@/hooks/use-tables";
+import { useToast } from "@/hooks/use-toast";
+import type { TableWithReservations } from "@shared/schema";
+import { Edit } from "lucide-react";
+
+interface FloorPlanProps {
+  onTableSelect: (table: TableWithReservations) => void;
+  onTableDetails: (table: TableWithReservations) => void;
+  selectedTable: TableWithReservations | null;
+}
+
+export function FloorPlan({ onTableSelect, onTableDetails, selectedTable }: FloorPlanProps) {
+  const { data: tables, isLoading } = useTables();
+  const updateTable = useUpdateTable();
+  const { toast } = useToast();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draggedTable, setDraggedTable] = useState<TableWithReservations | null>(null);
+  const floorPlanRef = useRef<HTMLDivElement>(null);
+
+  const handleTableMove = useCallback(
+    (table: TableWithReservations, x: number, y: number) => {
+      if (!isEditMode) return;
+
+      updateTable.mutate(
+        { id: table.id, updates: { x, y } },
+        {
+          onSuccess: () => {
+            toast({
+              title: "Стол перемещен",
+              description: `Стол №${table.number} успешно перемещен`,
+            });
+          },
+          onError: () => {
+            toast({
+              title: "Ошибка",
+              description: "Не удалось переместить стол",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+    },
+    [isEditMode, updateTable, toast]
+  );
+
+  const handleMouseDown = (e: React.MouseEvent, table: TableWithReservations) => {
+    if (!isEditMode) return;
+    
+    e.preventDefault();
+    setDraggedTable(table);
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!floorPlanRef.current || !draggedTable) return;
+      
+      const rect = floorPlanRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Update position temporarily for visual feedback
+      const tableElement = document.querySelector(`[data-table-id="${draggedTable.id}"]`) as HTMLElement;
+      if (tableElement) {
+        tableElement.style.left = `${x}px`;
+        tableElement.style.top = `${y}px`;
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!floorPlanRef.current || !draggedTable) return;
+      
+      const rect = floorPlanRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width - 100));
+      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height - 100));
+      
+      handleTableMove(draggedTable, x, y);
+      setDraggedTable(null);
+      
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+    
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleTableClick = (table: TableWithReservations) => {
+    if (isEditMode) return;
+    onTableSelect(table);
+  };
+
+  const handleTableDoubleClick = (table: TableWithReservations) => {
+    if (isEditMode) return;
+    onTableDetails(table);
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>План зала</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-gray-50 rounded-lg h-96 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>План зала</CardTitle>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-sm text-gray-600">Свободно</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span className="text-sm text-gray-600">Забронировано</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <span className="text-sm text-gray-600">Занято</span>
+            </div>
+            <Button
+              variant={isEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsEditMode(!isEditMode)}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              {isEditMode ? "Готово" : "Редактировать"}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div
+          ref={floorPlanRef}
+          className="relative bg-gray-50 rounded-lg h-96 overflow-hidden p-4"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><defs><pattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'><path d='M 20 0 L 0 0 0 20' fill='none' stroke='%23E5E7EB' stroke-width='1'/></pattern></defs><rect width='100%' height='100%' fill='url(%23grid)'/></svg>")`,
+          }}
+        >
+          {/* Kitchen Area */}
+          <div className="absolute top-4 right-4 bg-gray-300 rounded-lg p-4 text-center">
+            <div className="text-orange-500 text-xl mb-2">🔥</div>
+            <div className="text-sm font-medium text-gray-700">Кухня</div>
+          </div>
+
+          {/* Bar Area */}
+          <div className="absolute top-4 left-4 bg-gray-300 rounded-lg p-6 text-center">
+            <div className="text-amber-600 text-xl mb-2">🍷</div>
+            <div className="text-sm font-medium text-gray-700">Бар</div>
+          </div>
+
+          {/* Entrance */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-100 rounded-lg p-3 text-center">
+            <div className="text-blue-600 text-lg">🚪</div>
+            <div className="text-xs font-medium text-blue-600">Вход</div>
+          </div>
+
+          {/* Tables */}
+          {tables?.map((table) => (
+            <div
+              key={table.id}
+              data-table-id={table.id}
+              onMouseDown={isEditMode ? (e) => handleMouseDown(e, table) : undefined}
+            >
+              <TableItem
+                table={table}
+                isSelected={selectedTable?.id === table.id}
+                onSelect={handleTableClick}
+                onDoubleClick={handleTableDoubleClick}
+              />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
