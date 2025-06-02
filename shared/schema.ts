@@ -1,54 +1,68 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+import { z } from 'zod';
 
-export const tables = pgTable("tables", {
-  id: serial("id").primaryKey(),
-  number: integer("number").notNull().unique(),
-  name: text("name"),
-  capacity: integer("capacity").notNull(),
-  x: integer("x").notNull(),
-  y: integer("y").notNull(),
-  width: integer("width").notNull(),
-  height: integer("height").notNull(),
-  status: text("status", { enum: ["available", "reserved", "occupied"] }).notNull().default("available"),
-  shape: text("shape", { enum: ["round", "square", "rectangular"] }).notNull().default("round"),
-  hallId: text("hall_id", { enum: ["white", "bar", "vaulted", "fourth", "banquet"] }).notNull().default("white"),
+// User schemas
+export const userSchema = z.object({
+  id: z.string(),
+  username: z.string(),
+  email: z.string().email(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
-export const reservations = pgTable("reservations", {
-  id: serial("id").primaryKey(),
-  tableId: integer("table_id").notNull(),
-  customerName: text("customer_name").notNull(),
-  customerPhone: text("customer_phone").notNull(),
-  guests: integer("guests").notNull(),
-  date: text("date").notNull(),
-  time: text("time").notNull(),
-  duration: integer("duration").notNull().default(120), // minutes
-  comment: text("comment"),
-  status: text("status", { enum: ["active", "completed", "cancelled"] }).notNull().default("active"),
-  hasTimeLimit: boolean("has_time_limit").notNull().default(false),
-  startTime: text("start_time"),
-  endTime: text("end_time"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const createUserSchema = z.object({
+  username: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(6),
 });
 
-export const insertTableSchema = createInsertSchema(tables).omit({
-  id: true,
+export const loginUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
 });
 
-export const insertReservationSchema = createInsertSchema(reservations).omit({
-  id: true,
-  createdAt: true,
+// Table schemas
+export const tableSchema = z.object({
+  id: z.string(),
+  number: z.number(),
+  capacity: z.number(),
+  isAvailable: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
-export type InsertTable = z.infer<typeof insertTableSchema>;
-export type Table = typeof tables.$inferSelect;
-export type InsertReservation = z.infer<typeof insertReservationSchema>;
-export type Reservation = typeof reservations.$inferSelect;
+export const createTableSchema = z.object({
+  number: z.number(),
+  capacity: z.number(),
+  hallId: z.string(),
+});
 
-// Extended types for frontend
-export type TableWithReservations = Table & {
-  currentReservation?: Reservation;
-  todayReservations?: Reservation[];
-};
+// Reservation schemas
+export const reservationSchema = z.object({
+  id: z.string(),
+  tableId: z.string(),
+  userId: z.string(),
+  startTime: z.date(),
+  endTime: z.date(),
+  status: z.enum(['pending', 'confirmed', 'cancelled']),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const createReservationSchema = z.object({
+  tableId: z.string(),
+  customerName: z.string(),
+  customerPhone: z.string(),
+  startTime: z.string().transform(str => new Date(str)),
+  endTime: z.string().transform(str => new Date(str)),
+});
+
+// Types
+export type User = z.infer<typeof userSchema>;
+export type CreateUser = z.infer<typeof createUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
+
+export type Table = z.infer<typeof tableSchema>;
+export type CreateTable = z.infer<typeof createTableSchema>;
+
+export type Reservation = z.infer<typeof reservationSchema>;
+export type CreateReservation = z.infer<typeof createReservationSchema>;

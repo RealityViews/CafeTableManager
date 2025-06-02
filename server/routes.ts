@@ -1,7 +1,150 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTableSchema, insertReservationSchema } from "@shared/schema";
+import { createTableSchema, createReservationSchema } from "@shared/schema";
+import { Router } from 'express';
+import passport from 'passport';
+import { z } from 'zod';
+import { db } from './storage';
+import { users } from './schema';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
+import type { Request, Response } from 'express';
+
+const router = Router();
+
+// Validation schemas
+const registerSchema = z.object({
+  username: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  };
+}
+
+// Auth routes
+router.post('/auth/register', async (req, res) => {
+  try {
+    const { username, email, password } = registerSchema.parse(req.body);
+
+    // Check if user already exists
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const [user] = await db
+      .insert(users)
+      .values({
+        username,
+        email,
+        password: hashedPassword,
+      })
+      .returning();
+
+    // Log in user
+    req.login(user, (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to log in' });
+      }
+      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/auth/login', (req, res, next) => {
+  passport.authenticate('local', (err: any, user: any, info: any) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.status(401).json({ error: info.message });
+    }
+    req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    });
+  })(req, res, next);
+});
+
+router.post('/auth/logout', (req, res) => {
+  req.logout(() => {
+    res.json({ message: 'Logged out successfully' });
+  });
+});
+
+router.get('/auth/me', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  res.json({ user: req.user });
+});
+
+// Passport local strategy
+passport.use(
+  new (require('passport-local').Strategy)(async (email: string, password: string, done: any) => {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (!user) {
+        return done(null, false, { message: 'Incorrect email.' });
+      }
+
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        return done(null, false, { message: 'Incorrect password.' });
+      }
+
+      return done(null, { id: user.id, username: user.username, email: user.email });
+    } catch (error) {
+      return done(error);
+    }
+  })
+);
+
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+    done(null, user ? { id: user.id, username: user.username, email: user.email } : null);
+  } catch (error) {
+    done(error);
+  }
+});
+
+export default router;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Tables endpoints
@@ -53,8 +196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tables", async (req, res) => {
     try {
-      const tableData = insertTableSchema.parse(req.body);
-      const table = await storage.createTable(tableData);
+      const tableData = createTableSchema.parse(req.body);
+      const table = await storage.createTable(tableData.number, tableData.capacity, tableData.hallId);
       res.status(201).json(table);
     } catch (error) {
       res.status(400).json({ error: "Invalid table data" });
@@ -168,12 +311,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/reservations", async (req, res) => {
+  app.post("/api/reservations", async (req: Request, res: Response) => {
     try {
-      const reservationData = insertReservationSchema.parse(req.body);
+      const authReq = req as AuthenticatedRequest;
+      if (!authReq.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const reservationData = createReservationSchema.parse(req.body);
       
       // Check if table is available
-      const table = await storage.getTable(reservationData.tableId);
+      const table = await storage.getTable(parseInt(reservationData.tableId));
       if (!table) {
         return res.status(404).json({ error: "Table not found" });
       }
@@ -181,17 +329,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for conflicting reservations
       const existingReservations = await storage.getReservationsByTable(reservationData.tableId);
       const conflictingReservation = existingReservations.find(r => 
-        r.date === reservationData.date && 
+        r.startTime.toISOString().split('T')[0] === reservationData.startTime.toISOString().split('T')[0] && 
         r.status === "active" &&
-        // Simple time conflict check (in real app, would be more sophisticated)
-        r.time === reservationData.time
+        r.startTime.toISOString().split('T')[1] === reservationData.startTime.toISOString().split('T')[1]
       );
       
       if (conflictingReservation) {
         return res.status(409).json({ error: "Time slot not available" });
       }
       
-      const reservation = await storage.createReservation(reservationData);
+      const reservation = await storage.createReservation(
+        reservationData.tableId,
+        authReq.user.id,
+        reservationData.customerName,
+        reservationData.customerPhone,
+        reservationData.startTime,
+        reservationData.endTime
+      );
       res.status(201).json(reservation);
     } catch (error) {
       res.status(400).json({ error: "Invalid reservation data" });
@@ -232,9 +386,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date().toISOString().split('T')[0];
       const todayReservations = await storage.getReservationsByDate(today);
       
-      const availableTables = tables.filter(t => t.status === "available").length;
-      const reservedTables = tables.filter(t => t.status === "reserved").length;
-      const occupiedTables = tables.filter(t => t.status === "occupied").length;
+      const availableTables = tables.filter(t => t.isAvailable).length;
+      const reservedTables = tables.filter(t => !t.isAvailable).length;
+      const occupiedTables = 0; // This would need to be tracked separately
       
       res.json({
         availableTables,
