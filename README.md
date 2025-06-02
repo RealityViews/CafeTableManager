@@ -36,4 +36,4 @@ npm run dev
 - Tailwind CSS
 - Express.js
 - PostgreSQL
-- Drizzle ORM 
+- Drizzle ORM
