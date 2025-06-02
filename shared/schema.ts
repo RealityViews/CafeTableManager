@@ -25,36 +25,61 @@ export const tableSchema = z.object({
   id: z.string(),
   number: z.number(),
   capacity: z.number(),
-  isAvailable: z.boolean(),
+  hallId: z.string(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+  rotation: z.number(),
+  status: z.enum(['available', 'reserved', 'occupied']),
   createdAt: z.date(),
-  updatedAt: z.date(),
+  updatedAt: z.date()
 });
 
-export const createTableSchema = z.object({
-  number: z.number(),
-  capacity: z.number(),
-  hallId: z.string(),
+export const hallSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date()
 });
 
 // Reservation schemas
 export const reservationSchema = z.object({
   id: z.string(),
   tableId: z.string(),
-  userId: z.string(),
-  startTime: z.date(),
-  endTime: z.date(),
-  status: z.enum(['pending', 'confirmed', 'cancelled']),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export const createReservationSchema = z.object({
-  tableId: z.string(),
   customerName: z.string(),
   customerPhone: z.string(),
-  startTime: z.string().transform(str => new Date(str)),
-  endTime: z.string().transform(str => new Date(str)),
+  guests: z.number(),
+  date: z.date(),
+  time: z.string(),
+  duration: z.number(),
+  status: z.enum(['pending', 'confirmed', 'cancelled']),
+  comment: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
 });
+
+export const createTableSchema = tableSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const createHallSchema = hallSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const createReservationSchema = reservationSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const updateTableSchema = createTableSchema.partial();
+export const updateHallSchema = createHallSchema.partial();
+export const updateReservationSchema = createReservationSchema.partial();
 
 // Types
 export type User = z.infer<typeof userSchema>;
@@ -62,7 +87,26 @@ export type CreateUser = z.infer<typeof createUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
 
 export type Table = z.infer<typeof tableSchema>;
-export type CreateTable = z.infer<typeof createTableSchema>;
-
+export type Hall = z.infer<typeof hallSchema>;
 export type Reservation = z.infer<typeof reservationSchema>;
+export type CreateTable = z.infer<typeof createTableSchema>;
+export type CreateHall = z.infer<typeof createHallSchema>;
 export type CreateReservation = z.infer<typeof createReservationSchema>;
+export type UpdateTable = z.infer<typeof updateTableSchema>;
+export type UpdateHall = z.infer<typeof updateHallSchema>;
+export type UpdateReservation = z.infer<typeof updateReservationSchema>;
+
+export type TableWithReservations = Table & {
+  reservations: Reservation[]
+};
+
+export type ReservationWithTable = Reservation & {
+  table: Table
+};
+
+export type InsertTable = CreateTable;
+export type InsertReservation = CreateReservation;
+
+// Transform functions for date fields
+export const transformDate = (str: string) => new Date(str);
+export const transformTime = (str: string) => str;
